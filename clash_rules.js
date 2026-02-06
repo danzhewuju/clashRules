@@ -113,7 +113,11 @@ const ruleProviders = {
 
 // 用户定义的规则
 const userDefinedRules = [
-  `DOMAIN-SUFFIX,linux.do,${PROXY_GROUPS.HIGH_PRIORITY}`
+  `DOMAIN-SUFFIX,linux.do,${PROXY_GROUPS.HIGH_PRIORITY}`,
+  `DOMAIN-SUFFIX,chatgpt.com,${PROXY_GROUPS.HIGH_PRIORITY}`,
+  `DOMAIN-SUFFIX,gemini.google.com,${PROXY_GROUPS.HIGH_PRIORITY}`,
+  `DOMAIN-SUFFIX,claude.ai,${PROXY_GROUPS.HIGH_PRIORITY}`,
+  `DOMAIN-SUFFIX,openai.com,${PROXY_GROUPS.HIGH_PRIORITY}`,
 ];
 
 // 基础分流规则
