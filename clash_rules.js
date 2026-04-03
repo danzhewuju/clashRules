@@ -70,18 +70,44 @@ const PROXY_GROUPS = {
   DIRECT: "直连",
   LANDING: "落地节点",
   LOW_COST: "低倍率节点",
-  HIGH_PRIORITY: "高优先级"
+  HIGH_PRIORITY: "高优先级",
+  PERSONAL: "自建节点"
 };
 
+const PERSONAL_PROXIES = [
+  {
+    name: "xx",
+    type: "vless",
+    server: "xxx",
+    port: 443,
+    uuid: "xxx",
+    udp: true,
+    tls: true,
+    "skip-cert-verify": false,
+    flow: "",
+    "client-fingerprint": "ios",
+    servername: "xxx",
+    network: "ws",
+    "ws-opts": {
+      path: "/xxx",
+      headers: {
+        Host: "xxx"
+      }
+    }
+  }
+];
+
 const buildList = (...e) => e.flat().filter(Boolean);
+const getPersonalProxyNames = () => PERSONAL_PROXIES.map(e => e.name);
 
 /**
  * 构建基础代理列表
  */
-function buildBaseLists({ landing: e, lowCost: t, countryGroupNames: o }) {
-  const r = buildList(
+function buildBaseLists({ landing: e, lowCost: t, countryGroupNames: o, personalProxyNames: r }) {
+  const n = buildList(
     PROXY_GROUPS.FALLBACK,
     e && PROXY_GROUPS.LANDING,
+    r.length && PROXY_GROUPS.PERSONAL,
     o,
     t && PROXY_GROUPS.LOW_COST,
     PROXY_GROUPS.MANUAL,
@@ -89,10 +115,10 @@ function buildBaseLists({ landing: e, lowCost: t, countryGroupNames: o }) {
     "DIRECT"
   );
   return {
-    defaultProxies: buildList(PROXY_GROUPS.SELECT, o, t && PROXY_GROUPS.LOW_COST, PROXY_GROUPS.MANUAL, PROXY_GROUPS.DIRECT, PROXY_GROUPS.HIGH_PRIORITY),
-    defaultProxiesDirect: buildList(PROXY_GROUPS.DIRECT, o, t && PROXY_GROUPS.LOW_COST, PROXY_GROUPS.SELECT, PROXY_GROUPS.MANUAL),
-    defaultSelector: r,
-    defaultFallback: buildList(e && PROXY_GROUPS.LANDING, o, t && PROXY_GROUPS.LOW_COST, PROXY_GROUPS.MANUAL, "DIRECT")
+    defaultProxies: buildList(PROXY_GROUPS.SELECT, r.length && PROXY_GROUPS.PERSONAL, o, t && PROXY_GROUPS.LOW_COST, PROXY_GROUPS.MANUAL, PROXY_GROUPS.DIRECT, PROXY_GROUPS.HIGH_PRIORITY),
+    defaultProxiesDirect: buildList(PROXY_GROUPS.DIRECT, r.length && PROXY_GROUPS.PERSONAL, o, t && PROXY_GROUPS.LOW_COST, PROXY_GROUPS.SELECT, PROXY_GROUPS.MANUAL),
+    defaultSelector: n,
+    defaultFallback: buildList(e && PROXY_GROUPS.LANDING, r.length && PROXY_GROUPS.PERSONAL, o, t && PROXY_GROUPS.LOW_COST, PROXY_GROUPS.MANUAL, "DIRECT")
   };
 }
 
@@ -286,8 +312,8 @@ function buildCountryProxyGroups({ countries: e, landing: t, loadBalance: o }) {
 /**
  * 构建完整的代理组结构
  */
-function buildProxyGroups({ landing: e, countries: t, countryProxyGroups: o, lowCost: r, defaultProxies: n, defaultProxiesDirect: s, defaultSelector: l, defaultFallback: i }) {
-  const a = t.includes("台湾"),
+function buildProxyGroups({ landing: e, countries: t, countryProxyGroups: o, lowCost: r, defaultProxies: n, defaultProxiesDirect: s, defaultSelector: l, defaultFallback: i, personalProxyNames: a }) {
+  const h = t.includes("台湾"),
     c = t.includes("香港"),
     p = t.includes("美国"),
     u = e ? l.filter(e => e !== PROXY_GROUPS.LANDING && e !== PROXY_GROUPS.FALLBACK) : [];
@@ -295,10 +321,19 @@ function buildProxyGroups({ landing: e, countries: t, countryProxyGroups: o, low
   return [
     { name: PROXY_GROUPS.SELECT, icon: "https://gcore.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Proxy.png", type: "select", proxies: l },
     { name: PROXY_GROUPS.MANUAL, icon: "https://gcore.jsdelivr.net/gh/shindgewongxj/WHATSINStash@master/icon/select.png", "include-all": !0, type: "select" },
+    a.length ? { name: PROXY_GROUPS.PERSONAL, icon: "https://gcore.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Airport.png", type: "select", proxies: a } : null,
     e ? { name: "前置代理", icon: "https://gcore.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Area.png", type: "select", "include-all": !0, "exclude-filter": "(?i)家宽|家庭|家庭宽带|商宽|商业宽带|星链|Starlink|落地", proxies: u } : null,
     e ? { name: PROXY_GROUPS.LANDING, icon: "https://gcore.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Airport.png", type: "select", "include-all": !0, filter: "(?i)家宽|家庭|家庭宽带|商宽|商业宽带|星链|Starlink|落地" } : null,
     // 避免策略组自引用导致 ProxyGroup loop
-    { name: PROXY_GROUPS.HIGH_PRIORITY, icon: "https://gcore.jsdelivr.net/gh/shindgewongxj/WHATSINStash@master/icon/v2tun.png", type: "select", proxies: n.filter(e => e !== PROXY_GROUPS.HIGH_PRIORITY && e !== PROXY_GROUPS.SELECT && e !== PROXY_GROUPS.DIRECT) },
+    {
+      name: PROXY_GROUPS.HIGH_PRIORITY,
+      icon: "https://gcore.jsdelivr.net/gh/shindgewongxj/WHATSINStash@master/icon/v2tun.png",
+      type: "select",
+      proxies: buildList(
+        a.length && PROXY_GROUPS.PERSONAL,
+        n.filter(e => e !== PROXY_GROUPS.HIGH_PRIORITY && e !== PROXY_GROUPS.SELECT && e !== PROXY_GROUPS.DIRECT && e !== PROXY_GROUPS.PERSONAL)
+      )
+    },
     { name: PROXY_GROUPS.FALLBACK, icon: "https://gcore.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Bypass.png", type: "fallback", url: "https://cp.cloudflare.com/generate_204", proxies: i, interval: 180, tolerance: 20, lazy: !1 },
     { name: "静态资源", icon: "https://gcore.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Cloudflare.png", type: "select", proxies: n },
     { name: "AI", icon: "https://gcore.jsdelivr.net/gh/powerfullz/override-rules@master/icons/chatgpt.png", type: "select", proxies: n },
@@ -307,8 +342,8 @@ function buildProxyGroups({ landing: e, countries: t, countryProxyGroups: o, low
     { name: "Google", icon: "https://gcore.jsdelivr.net/gh/powerfullz/override-rules@master/icons/Google.png", type: "select", proxies: n },
     { name: "Microsoft", icon: "https://gcore.jsdelivr.net/gh/powerfullz/override-rules@master/icons/Microsoft_Copilot.png", type: "select", proxies: n },
     { name: "YouTube", icon: "https://gcore.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/YouTube.png", type: "select", proxies: n },
-    { name: "Bilibili", icon: "https://gcore.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/bilibili.png", type: "select", proxies: a && c ? [PROXY_GROUPS.DIRECT, "台湾节点", "香港节点"] : s },
-    { name: "Bahamut", icon: "https://gcore.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Bahamut.png", type: "select", proxies: a ? ["台湾节点", PROXY_GROUPS.SELECT, PROXY_GROUPS.MANUAL, PROXY_GROUPS.DIRECT] : n },
+    { name: "Bilibili", icon: "https://gcore.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/bilibili.png", type: "select", proxies: h && c ? [PROXY_GROUPS.DIRECT, "台湾节点", "香港节点"] : s },
+    { name: "Bahamut", icon: "https://gcore.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Bahamut.png", type: "select", proxies: h ? ["台湾节点", PROXY_GROUPS.SELECT, PROXY_GROUPS.MANUAL, PROXY_GROUPS.DIRECT] : n },
     { name: "Netflix", icon: "https://gcore.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Netflix.png", type: "select", proxies: n },
     { name: "TikTok", icon: "https://gcore.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/TikTok.png", type: "select", proxies: n },
     { name: "Spotify", icon: "https://gcore.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Spotify.png", type: "select", proxies: n },
@@ -330,20 +365,21 @@ function buildProxyGroups({ landing: e, countries: t, countryProxyGroups: o, low
  * 主入口函数
  */
 function main(e) {
-  const t = { proxies: e.proxies },
+  const t = { proxies: [...PERSONAL_PROXIES, ...(e.proxies || [])] },
+    r = getPersonalProxyNames(),
     o = parseCountries(t),
-    r = hasLowCost(t),
-    n = getCountryGroupNames(o, countryThreshold),
-    s = stripNodeSuffix(n),
-    { defaultProxies: l, defaultProxiesDirect: i, defaultSelector: a, defaultFallback: c } = buildBaseLists({ landing: landing, lowCost: r, countryGroupNames: n }),
-    p = buildCountryProxyGroups({ countries: s, landing: landing, loadBalance: loadBalance }),
-    u = buildProxyGroups({ landing: landing, countries: s, countryProxyGroups: p, lowCost: r, defaultProxies: l, defaultProxiesDirect: i, defaultSelector: a, defaultFallback: c }),
-    d = u.map(e => e.name);
+    n = hasLowCost(t),
+    s = getCountryGroupNames(o, countryThreshold),
+    l = stripNodeSuffix(s),
+    { defaultProxies: i, defaultProxiesDirect: a, defaultSelector: c, defaultFallback: p } = buildBaseLists({ landing: landing, lowCost: n, countryGroupNames: s, personalProxyNames: r }),
+    u = buildCountryProxyGroups({ countries: l, landing: landing, loadBalance: loadBalance }),
+    d = buildProxyGroups({ landing: landing, countries: l, countryProxyGroups: u, lowCost: n, defaultProxies: i, defaultProxiesDirect: a, defaultSelector: c, defaultFallback: p, personalProxyNames: r }),
+    g = d.map(e => e.name);
     
   // 添加全局选择组
-  u.push({ name: "GLOBAL", icon: "https://gcore.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Global.png", "include-all": !0, type: "select", proxies: d });
+  d.push({ name: "GLOBAL", icon: "https://gcore.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Global.png", "include-all": !0, type: "select", proxies: g });
   
-  const g = buildRules({ quicEnabled: quicEnabled });
+  const y = buildRules({ quicEnabled: quicEnabled });
   
   // 完整配置注入
   return fullConfig && Object.assign(t, {
@@ -364,9 +400,9 @@ function main(e) {
     profile: { "store-selected": !0 }
   }),
   Object.assign(t, {
-    "proxy-groups": u,
+    "proxy-groups": d,
     "rule-providers": ruleProviders,
-    rules: g,
+    rules: y,
     ...(snifferEnabled ? { sniffer: snifferConfig } : {}),
     ...(dnsEnabled ? { dns: fakeIPEnabled ? dnsConfigFakeIp : dnsConfig } : {}),
     "geodata-mode": !0,
