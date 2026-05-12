@@ -74,31 +74,13 @@ const PROXY_GROUPS = {
   PERSONAL: "自建节点"
 };
 
-const PERSONAL_PROXIES = [
-  {
-    name: "xx",
-    type: "vless",
-    server: "xxx",
-    port: 443,
-    uuid: "xxx",
-    udp: true,
-    tls: true,
-    "skip-cert-verify": false,
-    flow: "",
-    "client-fingerprint": "ios",
-    servername: "xxx",
-    network: "ws",
-    "ws-opts": {
-      path: "/xxx",
-      headers: {
-        Host: "xxx"
-      }
-    }
-  }
-];
+const PERSONAL_PROXY_KEYWORDS = ["自建", "personal", "private", "self", "selfhost", "self-host", "homemade"];
 
 const buildList = (...e) => e.flat().filter(Boolean);
-const getPersonalProxyNames = () => PERSONAL_PROXIES.map(e => e.name);
+const getPersonalProxyNames = e => (e.proxies || []).filter(e => {
+  const t = (e.name || "").toLowerCase();
+  return PERSONAL_PROXY_KEYWORDS.some(e => t.includes(e));
+}).map(e => e.name);
 
 /**
  * 构建基础代理列表
@@ -365,8 +347,8 @@ function buildProxyGroups({ landing: e, countries: t, countryProxyGroups: o, low
  * 主入口函数
  */
 function main(e) {
-  const t = { proxies: [...PERSONAL_PROXIES, ...(e.proxies || [])] },
-    r = getPersonalProxyNames(),
+  const t = { proxies: e.proxies || [] },
+    r = getPersonalProxyNames(t),
     o = parseCountries(t),
     n = hasLowCost(t),
     s = getCountryGroupNames(o, countryThreshold),
